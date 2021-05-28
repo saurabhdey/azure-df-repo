@@ -1,0 +1,7 @@
+{
+	"name": "sdhostdb",
+	"properties": {
+		"type": "SelfHosted",
+		"description": "Hosted sql server"
+	}
+}
