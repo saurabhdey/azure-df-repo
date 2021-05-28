@@ -1,7 +1,0 @@
-{
-	"name": "SD-sqlserver",
-	"properties": {
-		"type": "SelfHosted",
-		"description": "Private sql server"
-	}
-}
