@@ -1,0 +1,15 @@
+{
+	"name": "DestinationDataset_y5e",
+	"properties": {
+		"linkedServiceName": {
+			"referenceName": "ss_dev",
+			"type": "LinkedServiceReference"
+		},
+		"annotations": [],
+		"type": "SqlServerTable",
+		"schema": [],
+		"typeProperties": {
+			"table": "Azure Blob Storage file"
+		}
+	}
+}
