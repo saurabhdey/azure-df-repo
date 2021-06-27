@@ -1,7 +1,0 @@
-{
-	"name": "CopyPipeline_Lookerexcel",
-	"properties": {
-		"description": "Copy the looker metrics",
-		"annotations": []
-	}
-}
