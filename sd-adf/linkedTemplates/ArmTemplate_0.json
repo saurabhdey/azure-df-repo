@@ -1,0 +1,321 @@
+{
+	"$schema": "http://schema.management.azure.com/schemas/2015-01-01/deploymentTemplate.json#",
+	"contentVersion": "1.0.0.0",
+	"parameters": {
+		"factoryName": {
+			"type": "string",
+			"metadata": "Data Factory name",
+			"defaultValue": "sd-adf"
+		},
+		"AzureBlobStorageTestCSVforADF_connectionString": {
+			"type": "secureString",
+			"metadata": "Secure string for 'connectionString' of 'AzureBlobStorageTestCSVforADF'"
+		},
+		"ss_dev_connectionString": {
+			"type": "secureString",
+			"metadata": "Secure string for 'connectionString' of 'ss_dev'"
+		}
+	},
+	"variables": {
+		"factoryId": "[concat('Microsoft.DataFactory/factories/', parameters('factoryName'))]"
+	},
+	"resources": [
+		{
+			"name": "[concat(parameters('factoryName'), '/sdhostdb')]",
+			"type": "Microsoft.DataFactory/factories/integrationRuntimes",
+			"apiVersion": "2018-06-01",
+			"properties": {
+				"type": "SelfHosted",
+				"description": "Hosted sql server",
+				"typeProperties": {}
+			},
+			"dependsOn": []
+		},
+		{
+			"name": "[concat(parameters('factoryName'), '/AzureBlobStorageTestCSVforADF')]",
+			"type": "Microsoft.DataFactory/factories/linkedServices",
+			"apiVersion": "2018-06-01",
+			"properties": {
+				"description": "This is to read a csv file",
+				"annotations": [],
+				"type": "AzureBlobStorage",
+				"typeProperties": {
+					"connectionString": "[parameters('AzureBlobStorageTestCSVforADF_connectionString')]"
+				},
+				"connectVia": {
+					"referenceName": "sdhostdb",
+					"type": "IntegrationRuntimeReference"
+				}
+			},
+			"dependsOn": [
+				"[concat(variables('factoryId'), '/integrationRuntimes/sdhostdb')]"
+			]
+		},
+		{
+			"name": "[concat(parameters('factoryName'), '/ss_dev')]",
+			"type": "Microsoft.DataFactory/factories/linkedServices",
+			"apiVersion": "2018-06-01",
+			"properties": {
+				"description": "Dev SQL server for testing",
+				"annotations": [],
+				"type": "SqlServer",
+				"typeProperties": {
+					"connectionString": "[parameters('ss_dev_connectionString')]"
+				},
+				"connectVia": {
+					"referenceName": "sdhostdb",
+					"type": "IntegrationRuntimeReference"
+				}
+			},
+			"dependsOn": [
+				"[concat(variables('factoryId'), '/integrationRuntimes/sdhostdb')]"
+			]
+		},
+		{
+			"name": "[concat(parameters('factoryName'), '/DestinationDataset_y5e')]",
+			"type": "Microsoft.DataFactory/factories/datasets",
+			"apiVersion": "2018-06-01",
+			"properties": {
+				"linkedServiceName": {
+					"referenceName": "ss_dev",
+					"type": "LinkedServiceReference"
+				},
+				"annotations": [],
+				"type": "SqlServerTable",
+				"schema": [],
+				"typeProperties": {
+					"table": "Azure Blob Storage file"
+				}
+			},
+			"dependsOn": [
+				"[concat(variables('factoryId'), '/linkedServices/ss_dev')]"
+			]
+		},
+		{
+			"name": "[concat(parameters('factoryName'), '/SourceDataset_y5e')]",
+			"type": "Microsoft.DataFactory/factories/datasets",
+			"apiVersion": "2018-06-01",
+			"properties": {
+				"linkedServiceName": {
+					"referenceName": "AzureBlobStorageTestCSVforADF",
+					"type": "LinkedServiceReference"
+				},
+				"annotations": [],
+				"type": "Excel",
+				"typeProperties": {
+					"sheetName": "Sheet1",
+					"location": {
+						"type": "AzureBlobStorageLocation",
+						"container": "adf-sd-raw"
+					},
+					"range": "A1:G27",
+					"firstRowAsHeader": true
+				},
+				"schema": [
+					{
+						"name": "Look_ID_Dev",
+						"type": "String"
+					},
+					{
+						"name": "Look_Name",
+						"type": "String"
+					},
+					{
+						"name": "Looker_Time_Redshift",
+						"type": "String"
+					},
+					{
+						"name": "Looker_Time_filters_Redshift",
+						"type": "String"
+					},
+					{
+						"name": "Athena time_DB",
+						"type": "String"
+					},
+					{
+						"name": "Looker time_Athena",
+						"type": "String"
+					},
+					{
+						"name": "Looker_Time_Filters_Athena",
+						"type": "String"
+					}
+				]
+			},
+			"dependsOn": [
+				"[concat(variables('factoryId'), '/linkedServices/AzureBlobStorageTestCSVforADF')]"
+			]
+		},
+		{
+			"name": "[concat(parameters('factoryName'), '/CopyPipeline_Lookerexcel')]",
+			"type": "Microsoft.DataFactory/factories/pipelines",
+			"apiVersion": "2018-06-01",
+			"properties": {
+				"description": "Copy the looker metrics",
+				"activities": [
+					{
+						"name": "Copy_y5e",
+						"type": "Copy",
+						"dependsOn": [],
+						"policy": {
+							"timeout": "7.00:00:00",
+							"retry": 0,
+							"retryIntervalInSeconds": 30,
+							"secureOutput": false,
+							"secureInput": false
+						},
+						"userProperties": [
+							{
+								"name": "Source",
+								"value": "adf-sd-raw//"
+							},
+							{
+								"name": "Destination",
+								"value": ".Azure Blob Storage file"
+							}
+						],
+						"typeProperties": {
+							"source": {
+								"type": "ExcelSource",
+								"storeSettings": {
+									"type": "AzureBlobStorageReadSettings",
+									"maxConcurrentConnections": 3,
+									"recursive": false,
+									"wildcardFileName": "*",
+									"enablePartitionDiscovery": false
+								}
+							},
+							"sink": {
+								"type": "SqlServerSink",
+								"tableOption": "autoCreate"
+							},
+							"enableStaging": false,
+							"enableSkipIncompatibleRow": true,
+							"validateDataConsistency": false,
+							"logSettings": {
+								"enableCopyActivityLog": true,
+								"copyActivityLogSettings": {
+									"logLevel": "Warning",
+									"enableReliableLogging": false
+								},
+								"logLocationSettings": {
+									"linkedServiceName": {
+										"referenceName": "AzureBlobStorageTestCSVforADF",
+										"type": "LinkedServiceReference"
+									}
+								}
+							},
+							"translator": {
+								"type": "TabularTranslator",
+								"mappings": [
+									{
+										"source": {
+											"name": "Look_ID_Dev",
+											"type": "String",
+											"physicalType": "String"
+										},
+										"sink": {
+											"name": "Look_ID_Dev",
+											"type": "String"
+										}
+									},
+									{
+										"source": {
+											"name": "Look_Name",
+											"type": "String",
+											"physicalType": "String"
+										},
+										"sink": {
+											"name": "Look_Name",
+											"type": "String"
+										}
+									},
+									{
+										"source": {
+											"name": "Looker_Time_Redshift",
+											"type": "String",
+											"physicalType": "String"
+										},
+										"sink": {
+											"name": "Looker_Time_Redshift",
+											"type": "String"
+										}
+									},
+									{
+										"source": {
+											"name": "Looker_Time_filters_Redshift",
+											"type": "String",
+											"physicalType": "String"
+										},
+										"sink": {
+											"name": "Looker_Time_filters_Redshift",
+											"type": "String"
+										}
+									},
+									{
+										"source": {
+											"name": "Athena time_DB",
+											"type": "String",
+											"physicalType": "String"
+										},
+										"sink": {
+											"name": "Athena time_DB",
+											"type": "String"
+										}
+									},
+									{
+										"source": {
+											"name": "Looker time_Athena",
+											"type": "String",
+											"physicalType": "String"
+										},
+										"sink": {
+											"name": "Looker time_Athena",
+											"type": "String"
+										}
+									},
+									{
+										"source": {
+											"name": "Looker_Time_Filters_Athena",
+											"type": "String",
+											"physicalType": "String"
+										},
+										"sink": {
+											"name": "Looker_Time_Filters_Athena",
+											"type": "String"
+										}
+									}
+								],
+								"typeConversion": true,
+								"typeConversionSettings": {
+									"allowDataTruncation": true,
+									"treatBooleanAsNumber": false
+								}
+							}
+						},
+						"inputs": [
+							{
+								"referenceName": "SourceDataset_y5e",
+								"type": "DatasetReference",
+								"parameters": {}
+							}
+						],
+						"outputs": [
+							{
+								"referenceName": "DestinationDataset_y5e",
+								"type": "DatasetReference",
+								"parameters": {}
+							}
+						]
+					}
+				],
+				"annotations": []
+			},
+			"dependsOn": [
+				"[concat(variables('factoryId'), '/datasets/SourceDataset_y5e')]",
+				"[concat(variables('factoryId'), '/datasets/DestinationDataset_y5e')]",
+				"[concat(variables('factoryId'), '/linkedServices/AzureBlobStorageTestCSVforADF')]"
+			]
+		}
+	]
+}
