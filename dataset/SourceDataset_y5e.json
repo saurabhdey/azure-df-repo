@@ -1,0 +1,50 @@
+{
+	"name": "SourceDataset_y5e",
+	"properties": {
+		"linkedServiceName": {
+			"referenceName": "AzureBlobStorageTestCSVforADF",
+			"type": "LinkedServiceReference"
+		},
+		"annotations": [],
+		"type": "Excel",
+		"typeProperties": {
+			"sheetName": "Sheet1",
+			"location": {
+				"type": "AzureBlobStorageLocation",
+				"container": "adf-sd-raw"
+			},
+			"range": "A1:G27",
+			"firstRowAsHeader": true
+		},
+		"schema": [
+			{
+				"name": "Look_ID_Dev",
+				"type": "String"
+			},
+			{
+				"name": "Look_Name",
+				"type": "String"
+			},
+			{
+				"name": "Looker_Time_Redshift",
+				"type": "String"
+			},
+			{
+				"name": "Looker_Time_filters_Redshift",
+				"type": "String"
+			},
+			{
+				"name": "Athena time_DB",
+				"type": "String"
+			},
+			{
+				"name": "Looker time_Athena",
+				"type": "String"
+			},
+			{
+				"name": "Looker_Time_Filters_Athena",
+				"type": "String"
+			}
+		]
+	}
+}
